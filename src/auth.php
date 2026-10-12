@@ -40,10 +40,10 @@ function visibility_clause(PDO $pdo, array $user, string $unitColumn, string $co
         return '1=1';
     }
 
-    $params['scope_county'] = $user['county'];
     $unitId = $user['administrative_unit_id'] ?? null;
     if (!$unitId) {
-        return "{$unitColumn} IS NULL AND {$countyColumn} = :scope_county OR {$unitColumn} IS NOT NULL AND {$countyColumn} = :scope_county";
+        $params['scope_county'] = $user['county'];
+        return "({$countyColumn} = :scope_county)";
     }
 
     try {
@@ -61,8 +61,10 @@ function visibility_clause(PDO $pdo, array $user, string $unitColumn, string $co
     }
 
     if ($ids === []) {
-        return "{$countyColumn} = :scope_county";
+        // A missing or unreadable assigned scope must never widen access.
+        return '1=0';
     }
+    $params['scope_county'] = $user['county'];
     $placeholders = [];
     foreach ($ids as $index => $id) {
         $key = "scope_unit_{$index}";
